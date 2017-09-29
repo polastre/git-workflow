@@ -18,6 +18,16 @@ Install requirements:
 
 Add this folder to your path, so `git` can pick up the scripts.
 
+## Prequisites
+
+Have Python 2.7 or Python 3.6.
+
+Install requirements:
+
+`pip install -r requirements.txt`
+
+Add this folder to your path, so `git` can pick up the scripts.
+
 
 ## Commands
 
