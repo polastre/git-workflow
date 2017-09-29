@@ -2,7 +2,7 @@
 #
 # git-sync-all
 #
-# Script for syncing the master branch with origin and rebasing all branches
+# Script for syncing the develop branch with origin and rebasing all branches
 # against mater.
 #
 # Usage:
@@ -26,14 +26,14 @@ except git.exc.InvalidGitRepositoryError:
 util.fatal_if_dirty(repo)
 
 initial_branch = repo.active_branch
-util.update_master(repo, initial_branch)
+util.update_develop(repo, initial_branch)
 
 for r in repo.branches:
-	if r.name != 'master':
+	if r.name != 'develop':
 		util.info('Syncing out %s' % r)
 		r.checkout()
 		try:
-			repo.git.rebase('master')
+			repo.git.rebase('develop')
 		except:
 			repo.git.rebase('--abort')
 			initial_branch.checkout()
@@ -41,4 +41,4 @@ for r in repo.branches:
 
 initial_branch.checkout()
 
-util.success('Master synced with origin, and all branches rebased')
+util.success('develop synced with origin, and all branches rebased')

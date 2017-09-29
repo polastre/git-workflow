@@ -5,7 +5,7 @@ _Opinionated tools for managing a team based git workflow._
 
 ## Principles
 
-- Local `master` is kept clean and relatively up to date with origin
+- Local `develop` is kept clean and relatively up to date with origin
 - Avoid merge commits where possible
 - Most work occurs in personal branches and are considered private (hence `push -f` is acceptable)
 
@@ -14,23 +14,23 @@ _Opinionated tools for managing a team based git workflow._
 
 ### Start
 
-**Pulls master and creates a new feature branch named `$USERNAME/feature`.**
+**Pulls develop and creates a new feature branch named `$USERNAME/feature`.**
 
 `git start [feature]`
 
 
 ### Sync
 
-**Pulls master and rebases working branch.**
+**Pulls develop and rebases working branch.**
 
 `git sync [-i]`
 
 This is useful to avoid your changes being interleaved with other commits.
 For example, say you were coding in your branch and made the changes `A, B, C`.
-If you merge with master the commit history may now be `W, A, X, Y, B, Z, C`.
+If you merge with develop the commit history may now be `W, A, X, Y, B, Z, C`.
 Leaving the history like this can make it harder to rollback a logical set of
 changes in one go.  Using rebase, you will replay your commits on the end of
-master, resulting in `W, X, Y, Z, A, B, C`.
+develop, resulting in `W, X, Y, Z, A, B, C`.
 
 Often it makes sense to make a lot of changes locally, that you wouldn't
 necessarily want to push together, in cases like this you can use
@@ -42,7 +42,7 @@ rebase can both squash and remove commits.
 
 ### Sync All
 
-**Pulls master and rebases all local branches.**
+**Pulls develop and rebases all local branches.**
 
 `git sync-all`
 
@@ -55,7 +55,7 @@ rebase can both squash and remove commits.
 
 ### Cleanup
 
-**Removes local and remote branches that have been merged into master.**
+**Removes local and remote branches that have been merged into develop.**
 
 `git cleanup`
 

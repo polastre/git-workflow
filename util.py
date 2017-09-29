@@ -36,23 +36,23 @@ def fatal_if_dirty(repo):
 		print(repo.git.status('-s'))
 		exit(1)
 
-def update_master(repo, initial_branch):
+def update_develop(repo, initial_branch):
 	"""
-	Switches to the master branch and pulls from origin. If an exception occurs
+	Switches to the develop branch and pulls from origin. If an exception occurs
 	it switches back to the initial branch and exits.
 	"""
 
-	info('Switching to master branch')
+	info('Switching to develop branch')
 	try:
-		repo.heads.master.checkout()
+		repo.heads.develop.checkout()
 	except:
-		fatal('Could not checkout master.')
-	info('Pulling updates for master branch')
+		fatal('Could not checkout develop.')
+	info('Pulling updates for develop branch')
 	try:
 		repo.git.remote('update', '--prune')
 		repo.remotes.origin.pull('--no-tags')
 	except:
-		warn('Failed to update master')
+		warn('Failed to update develop')
 		initial_branch.checkout()
 		c = prompt('Continue anyway? [y/N]')
 		if c != 'Y' and c != 'y' and c != 'yes':
