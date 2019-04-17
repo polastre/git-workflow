@@ -1,4 +1,3 @@
-
 import json
 import getpass
 import os.path
@@ -47,18 +46,27 @@ def update_develop(repo, initial_branch):
 	info('Switching to develop branch')
 	try:
 		repo.heads.develop.checkout()
-	except:
-		fatal('Could not checkout develop.')
+	except BaseException as e:
+		fatal('Could not checkout develop: %s' % e)
 	info('Pulling updates for develop branch')
 	try:
 		repo.git.remote('update', '--prune')
 		repo.remotes.origin.pull('--no-tags')
-	except:
-		warn('Failed to update develop')
+	except BaseException as e:
+		warn('Failed to update develop: %s' % e)
 		initial_branch.checkout()
-		c = prompt('Continue anyway? [y/N]')
-		if c != 'Y' and c != 'y' and c != 'yes':
+		c = prompt_y_n('Continue anyway?')
+		if not c:
 			exit(1)
+
+
+def get_branch_name(name):
+	"""
+	Returns the full, prefixed branch name.
+	"""
+	username = get_github_creds()['username']
+	return '%s/%s' % (username, name)
+
 
 def get_auth_filename():
 	"""
@@ -140,9 +148,29 @@ def prompt(msg, default='', password=False):
 	return answer or default
 
 
+def prompt_y_n(msg, default=False):
+	"""
+	Prompt user with given message for a yes/no answer (returning a boolean).
+	If user hits 'enter' w/o supplying an answer, return 'default' value.
+	"""
+
+	suffix = ' [y/N]'  # default answer is 'No'
+	if default:
+		suffix = ' [Y/n]'  # default answer is 'Yes'
+
+	answer = prompt(msg + suffix)
+
+	if answer.lower() in ['y', 'yes']:
+		return True
+	elif answer == '':
+		return default
+	else:
+		return False
+
+
 def fatal(msg, code=1):
 	"""
-	Primts a red error message and then exits the program.
+	Prints a red error message and then exits the program.
 	"""
 
 	error(msg)
@@ -151,7 +179,7 @@ def fatal(msg, code=1):
 
 def error(msg):
 	"""
-	Primts a red error message.
+	Prints a red error message.
 	"""
 
 	logging.error(RED + BOLD + msg + RESET)

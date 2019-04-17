@@ -14,9 +14,10 @@ import os
 import git
 import util
 
-go = util.prompt('Are you absolutely sure? [y/N]')
-if go != 'Y' and go != 'y' and go != 'yes':
-	util.warn('Ok, nothing to see here...')
+go = util.prompt_y_n('Are you absolutely sure?')
+if not go:
+	util.info('OK, aborting.')
+	exit(0)
 
 try:
     repo = git.Repo(os.getcwd(), search_parent_directories=True)

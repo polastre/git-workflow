@@ -35,8 +35,15 @@ remote_origin = repo.remotes.origin
 remote_branch = repo.active_branch # TODO: This might be not be true.
 remote_ref = '%s/%s' % (remote_origin, remote_branch)
 
+repo_root = repo.git.rev_parse("--show-toplevel")
 repo_url = list(repo.remotes.origin.urls)[0]
-m = re.search(':([^.]+)(\.|$)', repo_url)
+
+# Important things to match:
+# git@github.com:user/repo
+# git@github.com:user/repo.with.dot
+# git@github.com:user/repo.git
+# git@github.com:user/repo.with.dot.git
+m = re.search(':(.+?)(?:\.git)?$', repo_url)
 if m:
   repo_path = m.group(1)
 else:
@@ -50,12 +57,29 @@ repo.git.remote('prune', 'origin')
 try:
   diff = repo.git.diff(local_branch, remote_ref)
 except git.exc.GitCommandError:
-  util.fatal('Remote branch %s not available.' % remote_ref)
+  push_it = util.prompt_y_n('Remote branch %s not available; attempt to '
+    'push it up?' % remote_ref, default=True)
+  if push_it:
+    split_remote_ref = remote_ref.split('/', 1)
+    if len(split_remote_ref) != 2:
+      util.fatal('Remote ref name "%s" in unexpected format (expected '
+        '"[origin]/[branchname]"' % remote_ref)
+      exit(1)
+    repo.git.push([split_remote_ref[0], split_remote_ref[1]])
+    try:
+      # Try again to diff against remote branch
+      diff = repo.git.diff(local_branch, remote_ref)
+    except git.exc.GitCommandError:
+      util.info('Remote branch %s is STILL not available, nothing to do.' % remote_ref)
+      exit(1)
+  else:
+    util.warn('OK, aborting.')
+    exit(1)
 
 if diff != '':
   util.error('Local and remote branches are not in sync.')
-  show_diff = util.prompt('See diff [y/N]')
-  if show_diff == 'Y' or show_diff == 'y' or show_diff == 'yes':
+  show_diff = util.prompt_y_n('See diff?')
+  if show_diff:
     util.warn(diff)
   exit(1)
 
@@ -71,21 +95,39 @@ if changes == '':
 title = util.prompt('Enter a short title for the pull request', latest_commit)
 
 # FUTURE: ask Y/N questions in .gitchecklist
-# FUTURE: ask for code-reviewers
+
+reviewers = util.prompt('Enter reviewer', '')
+reviewer_list = re.split('[,\s]+', reviewers.strip())
+reviewer_list = [r for r in reviewer_list if r]
 
 # Load PR template, substitute variables.
-# FUTURE: Look for template in repo dir as well.
 
-template_file = path.join(util.get_script_path(), 'pull-request.template')
+default_template = path.join(util.get_script_path(), '.github', 'pull_request_template.md')
+local_template = path.join(repo_root, '.github', 'pull_request_template.md')
+
+if path.isfile(local_template):
+  template_file = local_template
+else:
+  template_file = default_template
+
 with open(template_file, 'r') as file:
   description = file.read() % {
-    "reviewer": "tbd",
+    "reviewer": ', '.join([('@%s' % r) for r in reviewer_list]) or 'tbd',
     "branch": local_branch,
     "changes": changes.strip()
   }
 
+# Add a help message to thet templated description.
+description = """// Please enter a description for the pull request. Lines starting
+// with '//' will be ignored, and an empty message aborts the request.
+
+%s""" % description
+
+# Allow the user to edit the description.
+description = util.edit(repo, description)
+
 # Strip comment lines.
-description = '\n'.join([x for x in util.edit(repo, description).splitlines() if not x.startswith('#')]).strip()
+description = '\n'.join([x for x in description.splitlines() if not x.startswith('//')]).strip()
 
 if not description:
   util.fatal('Empty message, aborting.')
@@ -116,7 +158,19 @@ if not r.ok:
 
 data = r.json()
 issue_id = data['id']
+issue_number = data['number']
 issue_url = data['html_url']
+
+if reviewer_list:
+  api_url = 'https://api.github.com/repos/%s/pulls/%s/requested_reviewers' % (repo_path, issue_number)
+  payload = {"reviewers": reviewer_list}
+  try:
+    r = requests.post(api_url,
+                      json=payload,
+                      auth=HTTPBasicAuth(creds['username'], creds['token']))
+  except:
+    err = sys.exc_info()[0]
+    util.error('Failed to request reviewers. Ignoring error: %s' % err)
 
 util.success('Whoop! PR was sent! %s' % issue_url)
 
@@ -129,5 +183,3 @@ try:
     util.info('The issue URL was copied to your clipboard.')
 except:
   pass
-
-# FUTURE: Update GitHub reviewers via requested_reviewers API.
