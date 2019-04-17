@@ -112,7 +112,7 @@ else:
 
 with open(template_file, 'r') as file:
   description = file.read() % {
-    "reviewer": ', '.join([('@%s' % r) for r in reviewer_list]) or 'tbd',
+    "reviewer": ', '.join([('@%s' % r) for r in reviewer_list]) or '',
     "branch": local_branch,
     "changes": changes.strip()
   }
